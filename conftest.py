@@ -1,10 +1,12 @@
 import functools
+import io
 import os
 import shutil
 import time
-
 import pytest
 from playwright.sync_api import Playwright, sync_playwright
+from PIL import Image
+import allure
 
 def pytest_addoption(parser):
     parser.addoption("--headless", action="store_true", default=False, help="run browser in headless mode")
@@ -57,15 +59,6 @@ def page(browser):
     yield page
     page.close()
 
-# def page(browser):
-#     page = browser.new_page()
-#     page.evaluate("window.moveTo(0, 0); window.resizeTo(screen.width, screen.height);")
-#     page.evaluate("console.log('Important debug info')")
-#
-#     yield page
-#     page.close()
-
-# Хук для обработки результатов теста
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
@@ -73,4 +66,48 @@ def pytest_runtest_makereport(item, call):
     setattr(item, "rep_" + rep.when, rep)  # сохраняем отчет в item
 
 
+def take_full_page_screenshot(page):
+    # Устанавливаем размер viewport, если он не задан
+    if not page.viewport_size:
+        page.set_viewport_size({"width": 1280, "height": 720})
 
+    # Получаем размеры страницы
+    viewport_width = page.viewport_size["width"]
+    total_height = page.evaluate("document.body.scrollHeight")
+    viewport_height = page.viewport_size["height"]
+
+    stitched_image = Image.new("RGB", (viewport_width, total_height))
+    offset_y = 0
+
+    while offset_y < total_height:
+        # Скроллим страницу
+        page.evaluate(f"window.scrollTo(0, {offset_y})")
+        page.wait_for_timeout(500)  # Задержка для обновления страницы
+
+        # Делаем скриншот текущей области просмотра
+        screenshot = page.screenshot()
+        image = Image.open(io.BytesIO(screenshot))
+
+        # Обрезаем изображение, если оно больше высоты страницы
+        if offset_y + viewport_height > total_height:
+            crop_height = viewport_height - (offset_y + viewport_height - total_height)
+            image = image.crop((0, viewport_height - crop_height, viewport_width, viewport_height))
+
+        stitched_image.paste(image, (0, offset_y))
+        offset_y += viewport_height
+
+    img_byte_arr = io.BytesIO()
+    stitched_image.save(img_byte_arr, format='PNG')
+    return img_byte_arr.getvalue()
+
+@pytest.fixture(scope="function")
+def take_screenshot(page, request):
+    yield
+    if hasattr(request.node, "rep_call") and request.node.rep_call.failed:
+        print("Тест упал, делаю скриншот полной страницы...")
+        screenshot = take_full_page_screenshot(page)
+        allure.attach(
+            screenshot,
+            name="Full page screenshot on failure",
+            attachment_type=allure.attachment_type.PNG
+        )

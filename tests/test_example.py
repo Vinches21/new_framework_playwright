@@ -1,36 +1,26 @@
 import functools
 import time
+
+import allure
 import pytest
 from pages.base_class import BasePage
 
 
-def trace_step(name):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            page = kwargs.get('page') or next((arg for arg in args if hasattr(arg, 'context')), None)
-            if page:
-                page.context.tracing.start_chunk(name=name)
-                try:
-                    return func(*args, **kwargs)
-                finally:
-                    page.context.tracing.stop_chunk()
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
+@allure.feature("Тестовая фича")
 class TestLesson:
 
     @pytest.mark.one
-    def test_open_page_positive(self, page):
+    @allure.title("Открыть страницу рамблера")
+    def test_open_page_positive(self, page, take_screenshot):
         """Проверка открытия страницы"""
         base_page = BasePage(page)
-        base_page.open_url("https://ya.ru")
+        base_page.open_url("https://rambler.ru")
         assert 'Яндекс — быстрый поиск в интернете' in page.title()
         time.sleep(2)
 
     @pytest.mark.one
-    def test_open_page_negаtive(self, page):
+    @allure.title("Открыть страницу яндекса")
+    def test_open_page_negаtive(self, page, take_screenshot):
         """Проверка открытия страницы"""
         base_page = BasePage(page)
         base_page.open_url("https://ya.ru")
@@ -50,3 +40,8 @@ class TestLesson:
         base_page.click("(//span[text() = 'playwright python'])[1]")
         base_page.wait_for_selector('text="Playwright"')
         assert "Playwright" in base_page.get_text('h3')
+
+
+
+def test_simple():
+    assert True == True
