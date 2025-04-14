@@ -4,7 +4,7 @@ import time
 import allure
 import pytest
 from pages.base_class import BasePage
-
+from playwright.sync_api import Playwright, sync_playwright, expect
 
 @allure.feature("Тестовая фича")
 class TestLesson:
@@ -14,7 +14,7 @@ class TestLesson:
     def test_open_page_positive(self, page, take_screenshot):
         """Проверка открытия страницы"""
         base_page = BasePage(page)
-        base_page.open_url("https://rambler.ru")
+        base_page.open_url("https://kinopoisk.ru")
         assert 'Яндекс — быстрый поиск в интернете' in page.title()
         time.sleep(2)
 
@@ -41,7 +41,26 @@ class TestLesson:
         base_page.wait_for_selector('text="Playwright"')
         assert "Playwright" in base_page.get_text('h3')
 
+    @pytest.mark.screen
+    def test_detmir_screenshot(self, page, snapshot):
+        base_page = BasePage(page)
+        base_page.open_url("https://kinopoisk.ru")
+        # Закрытие попапа выбора региона
+        # try:
+        #     page.click("text=Выбрать позже", timeout=5000)
+        # except:
+        #     pass
 
+        # Ожидание стабилизации страницы
+        # page.wait_for_selector("h1:has-text('Детский мир')", timeout=10000)
+        screenshot = page.screenshot(full_page=True)
+        snapshot.assert_match(screenshot, "kinopoisk.png")
 
-def test_simple():
-    assert True == True
+@pytest.mark.minimal
+def test_minimal(image_snapshot):
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto("https://example.com")
+        expect(page).to_have_screenshot("test.png")  # Проверьте это
+        browser.close()

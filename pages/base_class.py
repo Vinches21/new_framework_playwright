@@ -30,4 +30,9 @@ class BasePage:
         return self.page.is_visible(selector)
 
 
+    def create_screenshot(self):
+        screenshot_path = "screenshots/detmir_main_page.png"
+        self.page.screenshot(path=screenshot_path, full_page=True)
+
+
 

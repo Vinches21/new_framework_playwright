@@ -4,7 +4,7 @@ import os
 import shutil
 import time
 import pytest
-from playwright.sync_api import Playwright, sync_playwright
+from playwright.sync_api import Playwright, sync_playwright, expect
 from PIL import Image
 import allure
 
@@ -37,6 +37,7 @@ def browser(request):
             java_script_enabled=True
         )
 
+
         if trace_enabled:
             context.tracing.start(screenshots=True, snapshots=True, sources=True)
 
@@ -48,6 +49,8 @@ def browser(request):
         trace_path = os.path.join(trace_dir, "ALL_TESTS_TRACE.zip")
         context.tracing.stop(path=trace_path)
         print(f"\nОбщий trace файл сохранён: {os.path.abspath(trace_path)}")
+
+        os.makedirs("screenshots", exist_ok=True)  # Создаем папку
 
         context.close()
         browser.close()
@@ -111,3 +114,4 @@ def take_screenshot(page, request):
             name="Full page screenshot on failure",
             attachment_type=allure.attachment_type.PNG
         )
+
