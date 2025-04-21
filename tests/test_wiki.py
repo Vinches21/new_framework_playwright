@@ -38,6 +38,8 @@ def test_request(page:Page):
     page.get_by_role("button", name="Войти").click()
     time.sleep(5)
 
+
+"""Тест по подмене бэкового ответа"""
 @pytest.mark.res
 def test_response(page:Page):
     def change_response(route:Route):
