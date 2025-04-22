@@ -4,7 +4,7 @@ import time
 from random import randint
 from typing import Optional
 
-from playwright.sync_api import Page, FrameLocator
+from playwright.sync_api import Page, FrameLocator, Dialog, expect
 
 class BaseClass:
     def __init__(self, page: Page):
@@ -253,3 +253,27 @@ class BaseClass:
         response = response_info.value
         print(response.json())
         return response
+
+
+    # Метод для подписки на алерт
+    def allert_on(self):
+        self.page.on("dialog", self.allert_accept)
+
+    # Обработчик алерта
+    def allert_accept(self, alert):
+        print(alert.message)
+        alert.accept()
+
+    """Нахождение и клик по роли"""
+    def click_by_role(self, role, name):
+        element = self.page.get_by_role(role, name=name)
+        element.click()
+
+
+    """Метод по ожиданию события"""
+    def wait_event(self, event):
+        self.page.wait_for_event(event)
+
+    """Метод вы выбору значения в селекте"""
+    def choose_value_in_select(self, selector, name):
+        self.page.locator(selector).first.select_option(name)
