@@ -11,6 +11,8 @@ import allure
 def pytest_addoption(parser):
     parser.addoption("--headless", action="store_true", default=False, help="run browser in headless mode")
     parser.addoption("--playwright-trace", action="store_true", default=False, help="enable trace recording")
+    parser.addoption("--browser-t", action="store", default="chromium", choices=["chromium", "firefox", "webkit"],
+                     help="Choose browser: chromium, firefox, webkit")
 
 
 @pytest.fixture(scope="session")
@@ -18,17 +20,31 @@ def browser(request):
     with sync_playwright() as playwright:
         headless = request.config.getoption("--headless")
         trace_enabled = request.config.getoption("--playwright-trace")
+        browser_name = request.config.getoption("--browser-t")
 
-        # Запуск браузера
-        browser = playwright.chromium.launch(
-            headless=headless,
-            channel="chrome",
-            args=[
-                "--start-maximized",
-                "--disable-gpu",  # Исправлено: добавлены двойные дефисы
-                "--no-sandbox"  # Для linux систем
+
+
+        # Выбираем и запускаем соответствующий браузер
+        browser_type = {
+            "chromium": playwright.chromium,
+            "firefox": playwright.firefox,
+            "webkit": playwright.webkit
+        }[browser_name]
+
+        launch_args = {
+            "headless": headless,
+            "args": [
+                "--disable-gpu",
+                "--no-sandbox",
+                "--start-maximized"
             ]
-        )
+        }
+
+        # Специфичные настройки для Chromium
+        if browser_name == "chromium":
+            launch_args["channel"] = "chrome"
+
+        browser = browser_type.launch(**launch_args)
 
         # Настройки контекста с возможностью трассировки
         context = browser.new_context(
